@@ -99,9 +99,11 @@ p { margin: 0; max-width: 75ch; }
 .logo-link { display: block; line-height: 0; }
 .logo-link svg { height: 40px; width: auto; display: block; }
 .nav { display: flex; align-items: center; gap: var(--b5); }
+.nav:has(.btn-ikincil) { gap: var(--b4); }
 .nav a:not(.btn) { color: var(--metin-birincil); text-decoration: none; font-size: 15px; font-weight: 500; }
 .nav a:not(.btn):hover { text-decoration: underline; }
 @media (max-width: 860px) { .nav a:not(.btn) { display: none; } }
+@media (max-width: 960px) { .nav .btn-ikincil { display: none; } }
 @media (max-width: 420px) { .logo-link svg { height: 32px; } .ust .btn { padding-inline: var(--b4); } }
 
 /* Hero */

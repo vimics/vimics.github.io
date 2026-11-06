@@ -158,8 +158,20 @@ mono = mono.replace('viewBox="0 0 2000 1724"', 'viewBox="-100 -238 2200 2200"') 
 open(os.path.join(WEB, "assets", "img", "favicon.svg"), "w", encoding="utf-8").write(mono)
 open(os.path.join(WEB, "CNAME"), "w").write("vimics.vet\n")
 
-urls = [("", "2026-10-26"), ("vcage/", "2026-10-26"), ("dicom/", "2026-10-26"), ("blog/", BLOG_POSTS[0][2])]
-urls += [(f"blog/{slug}/", mod) for _, slug, mod in BLOG_POSTS]
+def lastmod(*files):
+    """Sitemap date = last commit touching the page's sources; uncommitted edits count as today."""
+    import subprocess, datetime
+    paths = [os.path.relpath(os.path.join(WEB, f), WEB) for f in files]
+    run = lambda *a: subprocess.run(["git", "-C", WEB, *a, "--", *paths], capture_output=True, text=True).stdout.strip()
+    if run("status", "--porcelain"):
+        return datetime.date.today().isoformat()
+    return run("log", "-1", "--format=%cs") or datetime.date.today().isoformat()
+
+CSS = "assets/site.css"
+urls = [("", lastmod("_src/index.src.html", CSS)), ("vcage/", lastmod("_src/vcage.src.html", CSS)),
+        ("dicom/", lastmod("_src/dicom.src.html", CSS)),
+        ("blog/", lastmod("_src/blog.src.html", CSS, *[f"_src/{s}" for s, _, _ in BLOG_POSTS]))]
+urls += [(f"blog/{slug}/", lastmod(f"_src/{src}", CSS)) for src, slug, _ in BLOG_POSTS]
 open(os.path.join(WEB, "sitemap.xml"), "w", encoding="utf-8").write(
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     + "".join(f"  <url><loc>https://vimics.vet/{u}</loc><lastmod>{m}</lastmod></url>\n" for u, m in urls) + "</urlset>\n")

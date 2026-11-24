@@ -17,20 +17,19 @@ UPLOAD_URL = "https://veterinaryinnovative-my.sharepoint.com/:f:/g/personal/onur
 # A DNS TXT verification at GoDaddy (Domain property) does not need this.
 GSC_TOKEN = ""
 
-# VCage set: (length mm, width mm, nominal height mm, overall height over ridges mm).
-# Footprint and nominal height follow the production file names; overall height is the
-# bounding box of the production STLs in ~/Downloads/Production STLs (measured 2026-10-15).
+# VCage set (new geometry, 2026-11-24): (width mm, length mm, height mm, footprint colour).
+# 4 footprints x 2 heights = 8 sizes. Heights are the labels on the approved flyer (5 / 6 mm);
+# the production files are named 4 / 5 (body without ridges). Colours match the size matrix render.
 VCAGE_SIZES = [
-    (8, 7, 4.5, 5.96), (8, 7, 5.5, 7.08),
-    (10, 8, 5.0, 6.54), (10, 8, 6.0, 7.55),
-    (11, 9, 5.5, 6.99), (11, 9, 6.5, 8.00),
-    (13, 10, 6.0, 7.61), (13, 10, 7.0, 8.61),
-    (15, 11, 6.5, 8.10), (15, 11, 7.5, 9.10),
+    (6, 9, 5, "#1A8486"), (6, 9, 6, "#1A8486"),
+    (6, 11, 5, "#A8386A"), (6, 11, 6, "#A8386A"),
+    (8, 9, 5, "#358446"), (8, 9, 6, "#358446"),
+    (8, 11, 5, "#B79643"), (8, 11, 6, "#B79643"),
 ]
-VCAGE_INSERTER = ("VC-INS-150", "VCage inserter", "150 mm")
+VCAGE_INSTRUMENTS = [("VC-INS", "VCage inserter", "threaded tip"), ("VC-RSP", "VCage rasp", "endplate preparation")]
 
-def vc_code(L, W, H):
-    return f"VC-{L:02d}{W:02d}-{round(H * 10):03d}"
+def vc_code(W, L, H):
+    return f"VC-{W:02d}{L:02d}-{round(H * 10):03d}"
 
 def fmt(x):
     return f"{x:g}"
@@ -46,47 +45,49 @@ def icon(name):
     d = re.search(r'<path d="([^"]+)"', s).group(1)
     return f'<svg class="ic" viewBox="0 -960 960 960" aria-hidden="true"><path d="{d}"/></svg>'
 
-# Size matrix render (VCage‡Gorseller/final/MATRIS_*_5444x2480.png): orthographic top view,
-# 92 mm wide frame, 5444 x 2480 px. Columns sit at x = -38, -19, 0, 19, 38 mm, the lower
-# height of each footprint at y = +8 mm (top row) and the higher one at y = -8 mm.
-MATRIS_W_MM = 92.0
-MATRIS_H_MM = MATRIS_W_MM * 2480 / 5444
+# Size matrix render (ViCage/Gorseller/final/MATRIS_koyu_8beden_5444x1974.png, transparent ground):
+# orthographic top view, 70 mm wide frame, 5444 x 1974 px. Footprint columns sit at x = -27, -9, 9, 27 mm,
+# the 5 mm height in the top row and the 6 mm height in the bottom row (row pitch 12.6 mm).
+MATRIS_W_MM = 70.0
+MATRIS_H_MM = MATRIS_W_MM * 1974 / 5444
+MATRIS_COLS = (-27, -9, 9, 27)
+MATRIS_PITCH = 12.6
 
 def matrix_figure():
-    labels, foots = [], []
-    for i, (L, W, H, _) in enumerate(VCAGE_SIZES):
-        col, row = i // 2, i % 2
-        sx, sy = -38 + 19 * col, (8 if row == 0 else -8)
-        x = (sx + MATRIS_W_MM / 2) / MATRIS_W_MM * 100
-        y_center = MATRIS_H_MM / 2 - sy
-        y = (y_center + W / 2 + 1.0) / MATRIS_H_MM * 100
-        labels.append(f'<span class="et" style="left:{x:.2f}%;top:{y:.2f}%"><b>{fmt(H)} mm</b>{vc_code(L, W, H)}</span>')
-        if row == 0:
-            foots.append(f'<span class="ayak" style="left:{x:.2f}%">{L}×{W}</span>')
-    alt = "All ten VCage sizes seen from above at one scale: five footprints in columns, two heights per footprint"
-    return ('<div class="matris-sar"><figure class="matris"><div class="matris-gorsel">'
-            f'<img class="tema-acik" src="../assets/img/vcage/matris-acik.webp" width="5444" height="2480" loading="lazy" alt="{alt}">'
-            f'<img class="tema-koyu" src="../assets/img/vcage/matris-koyu.webp" width="5444" height="2480" loading="lazy" alt="{alt}">'
-            + "".join(labels) + '</div><div class="ayaklar">' + "".join(foots) + '</div>'
-            '<figcaption>Top view, all sizes at one scale. Footprint in mm, length × width.</figcaption></figure></div>')
+    rows, foots = [], []
+    heights = sorted({H for _, _, H, _ in VCAGE_SIZES})
+    for r, H in enumerate(heights):
+        y = (0.5 + (r - (len(heights) - 1) / 2) * MATRIS_PITCH / MATRIS_H_MM) * 100
+        rows.append(f'<span class="satir" style="top:{y:.2f}%">{fmt(H)} mm</span>')
+    seen = []
+    for W, L, _, colour in VCAGE_SIZES:
+        if (W, L) in seen:
+            continue
+        x = (MATRIS_COLS[len(seen)] + MATRIS_W_MM / 2) / MATRIS_W_MM * 100
+        seen.append((W, L))
+        foots.append(f'<span class="ayak" style="left:{x:.2f}%"><i style="background:{colour}"></i>{W}×{L}</span>')
+    alt = "All eight VCage sizes seen from above at one scale: four footprints in columns, two heights per footprint"
+    return ('<div class="matris-sar"><figure class="matris"><div class="matris-ic"><div class="matris-gorsel">'
+            f'<img src="../assets/img/vcage/matris.webp" width="5444" height="1974" loading="lazy" alt="{alt}">'
+            + "".join(rows) + '</div><div class="ayaklar">' + "".join(foots) + '</div></div>'
+            '<figcaption>Top view, all sizes at one scale. Footprint in mm, width × length. Colour marks the footprint.</figcaption></figure></div>')
 
 def size_rows(order=False):
     rows, prev = [], None
-    for L, W, H, Hmax in VCAGE_SIZES:
-        code = vc_code(L, W, H)
-        first = ' class="grup-ilk"' if prev and prev != (L, W) else ""
-        prev = (L, W)
-        cells = (f'<td class="kod">{code}</td><td>{L} × {W}</td><td class="sayi">{fmt(H)}</td>')
+    for W, L, H, _ in VCAGE_SIZES:
+        code = vc_code(W, L, H)
+        first = ' class="grup-ilk"' if prev and prev != (W, L) else ""
+        prev = (W, L)
+        cells = (f'<td class="kod">{code}</td><td>{W} × {L}</td><td class="sayi">{fmt(H)}</td>')
         if order:
-            cells += (f'<td class="sayi"><input type="number" id="adet-{code}" data-kod="{code}" data-ad="VCage {fmt(H)} - {L}x{W}" '
+            cells += (f'<td class="sayi"><input type="number" id="adet-{code}" data-kod="{code}" data-ad="VCage {W}x{L}, {fmt(H)} mm" '
                       f'min="0" max="99" step="1" value="0" inputmode="numeric" aria-label="Quantity of {code}"></td>')
-        else:
-            cells += f'<td class="sayi">{Hmax:.1f}</td>'
         rows.append(f"<tr{first}>{cells}</tr>")
     if order:
-        code, name, length = VCAGE_INSERTER
-        rows.append(f'<tr class="grup-ilk"><td class="kod">{code}</td><td colspan="2">{name}, {length}</td>'
-                    f'<td class="sayi"><input type="number" id="adet-{code}" data-kod="{code}" data-ad="{name}" min="0" max="99" step="1" value="0" inputmode="numeric" aria-label="Quantity of {code}"></td></tr>')
+        for i, (code, name, note) in enumerate(VCAGE_INSTRUMENTS):
+            first = ' class="grup-ilk"' if i == 0 else ""
+            rows.append(f'<tr{first}><td class="kod">{code}</td><td colspan="2">{name}, {note}</td>'
+                        f'<td class="sayi"><input type="number" id="adet-{code}" data-kod="{code}" data-ad="{name}" min="0" max="99" step="1" value="0" inputmode="numeric" aria-label="Quantity of {code}"></td></tr>')
     return "\n".join(rows)
 
 # Blog posts: (source file, URL slug, last modified). Newest first; the blog index lists them by hand.

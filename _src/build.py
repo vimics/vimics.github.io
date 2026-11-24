@@ -26,10 +26,12 @@ VCAGE_SIZES = [
     (8, 9, 5, "#358446"), (8, 9, 6, "#358446"),
     (8, 11, 5, "#B79643"), (8, 11, 6, "#B79643"),
 ]
-VCAGE_INSTRUMENTS = [("VC-INS", "VCage inserter", "threaded tip"), ("VC-RSP", "VCage rasp", "endplate preparation")]
+# Codes follow the product BOM used for Odoo and the list sent to distributors (2026-11-17):
+# VC-LLWW-HHH = long side, short side, height x 10; VC-INS-150 inserter, VC-RSP rasp.
+VCAGE_INSTRUMENTS = [("VC-INS-150", "VCage inserter", "threaded tip"), ("VC-RSP", "VCage rasp", "endplate preparation")]
 
 def vc_code(W, L, H):
-    return f"VC-{W:02d}{L:02d}-{round(H * 10):03d}"
+    return f"VC-{max(W, L):02d}{min(W, L):02d}-{round(H * 10):03d}"
 
 def fmt(x):
     return f"{x:g}"

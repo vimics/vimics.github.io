@@ -47,32 +47,28 @@ def icon(name):
     d = re.search(r'<path d="([^"]+)"', s).group(1)
     return f'<svg class="ic" viewBox="0 -960 960 960" aria-hidden="true"><path d="{d}"/></svg>'
 
-# Size matrix render (ViCage/Gorseller/final/MATRIS_koyu_8beden_5444x1974.png, transparent ground):
-# orthographic top view, 70 mm wide frame, 5444 x 1974 px. Footprint columns sit at x = -27, -9, 9, 27 mm,
-# the 5 mm height in the top row and the 6 mm height in the bottom row (row pitch 12.6 mm).
+# Footprint row (ViCage/Gorseller/final/MATRIS_koyu_4taban_5444x1000.png, transparent ground): the 6 mm row
+# cropped from the 8-size top view (MATRIS_koyu_8beden_5444x1974.png, y 997-1997 px). Orthographic, 70 mm wide
+# frame; footprint columns at x = -27, -9, 9, 27 mm. Heights do not show from above, so they are written below
+# each footprint together with the reference codes.
 MATRIS_W_MM = 70.0
-MATRIS_H_MM = MATRIS_W_MM * 1974 / 5444
 MATRIS_COLS = (-27, -9, 9, 27)
-MATRIS_PITCH = 12.6
 
 def matrix_figure():
-    rows, foots = [], []
-    heights = sorted({H for _, _, H, _ in VCAGE_SIZES})
-    for r, H in enumerate(heights):
-        y = (0.5 + (r - (len(heights) - 1) / 2) * MATRIS_PITCH / MATRIS_H_MM) * 100
-        rows.append(f'<span class="satir" style="top:{y:.2f}%">{fmt(H)} mm</span>')
-    seen = []
-    for W, L, _, colour in VCAGE_SIZES:
-        if (W, L) in seen:
-            continue
-        x = (MATRIS_COLS[len(seen)] + MATRIS_W_MM / 2) / MATRIS_W_MM * 100
-        seen.append((W, L))
-        foots.append(f'<span class="ayak" style="left:{x:.2f}%"><i style="background:{colour}"></i>{W}×{L}</span>')
-    alt = "All eight VCage sizes seen from above at one scale: four footprints in columns, two heights per footprint"
-    return ('<div class="matris-sar"><figure class="matris"><div class="matris-ic"><div class="matris-gorsel">'
-            f'<img src="../assets/img/vcage/matris.webp" width="5444" height="1974" loading="lazy" alt="{alt}">'
-            + "".join(rows) + '</div><div class="ayaklar">' + "".join(foots) + '</div></div>'
-            '<figcaption>Top view, all sizes at one scale. Footprint in mm, width × length. Colour marks the footprint.</figcaption></figure></div>')
+    groups = {}
+    for W, L, H, colour in VCAGE_SIZES:
+        groups.setdefault((W, L, colour), []).append(H)
+    cols = []
+    for i, ((W, L, colour), hs) in enumerate(groups.items()):
+        x = (MATRIS_COLS[i] + MATRIS_W_MM / 2) / MATRIS_W_MM * 100
+        lines = "".join(f'<span><b>{fmt(H)} mm</b>{vc_code(W, L, H)}</span>' for H in hs)
+        cols.append(f'<div class="ayak" style="left:{x:.2f}%"><strong><i style="background:{colour}"></i>{W}×{L}</strong>{lines}</div>')
+    alt = "The four VCage footprints seen from above at one scale; each comes in 5 and 6 mm heights"
+    return ('<div class="matris-sar"><figure class="matris"><div class="matris-gorsel">'
+            f'<img src="../assets/img/vcage/taban.webp" width="5444" height="1000" loading="lazy" alt="{alt}">'
+            '</div><div class="ayaklar">' + "".join(cols) + '</div>'
+            '<figcaption>Top view, all footprints at one scale. Footprint in mm, width × length. Colour marks the footprint. '
+            'Each footprint comes in 5 and 6 mm heights.</figcaption></figure></div>')
 
 def size_rows(order=False):
     rows, prev = [], None
